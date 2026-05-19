@@ -120,26 +120,6 @@ writes array back → re-renders the cards on screen
    In React, use a Context provider or Zustand store so any component can
    read/update shared state without prop drilling.
 
----
-
-## 📝 Resume Bullet Points
-
-```
-• Developed Campus Companion, a full-featured student dashboard web app using HTML5,
-  CSS3, and vanilla JavaScript with zero external frameworks or dependencies.
-
-• Implemented 6 functional modules (Timetable, Attendance, Mess Menu, SGPA/CGPA
-  Calculator, Task Manager, Dashboard) with real-time countdown and live clock.
-
-• Engineered a localStorage persistence layer with custom JSON serialisation helpers,
-  ensuring all user data survives browser sessions.
-
-• Designed a responsive glassmorphism UI with CSS custom properties, supporting dark/
-  light themes, mobile sidebar navigation, and smooth CSS animations.
-
-• Built smart attendance logic including auto-warnings below 75%, classes-needed
-  calculator, and safe-to-skip estimator using algebraic formulas.
-```
 
 ---
 
