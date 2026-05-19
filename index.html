@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Campus Companion</title>
+
+  <!-- Google Fonts: Sora (display) + DM Sans (body) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet" />
+
+  <!-- Phosphor Icons (lightweight icon set) -->
+  <script src="https://unpkg.com/@phosphor-icons/web@2.1.1/src/index.js" defer></script>
+
+  <!-- Main Stylesheet -->
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ══════════════════════════════════════════
+       SIDEBAR NAVIGATION
+  ══════════════════════════════════════════ -->
+  <aside class="sidebar" id="sidebar">
+    <!-- Logo / Brand -->
+    <div class="sidebar-brand">
+      <div class="brand-icon">
+        <i class="ph-fill ph-graduation-cap"></i>
+      </div>
+      <span class="brand-name">Campus<br /><strong>Companion</strong></span>
+    </div>
+
+    <!-- Nav Links -->
+    <nav class="sidebar-nav">
+      <a href="#" class="nav-item active" data-section="dashboard">
+        <i class="ph ph-squares-four"></i>
+        <span>Dashboard</span>
+      </a>
+      <a href="#" class="nav-item" data-section="timetable">
+        <i class="ph ph-calendar-dots"></i>
+        <span>Timetable</span>
+      </a>
+      <a href="#" class="nav-item" data-section="attendance">
+        <i class="ph ph-chart-bar"></i>
+        <span>Attendance</span>
+      </a>
+      <a href="#" class="nav-item" data-section="mess">
+        <i class="ph ph-fork-knife"></i>
+        <span>Mess Menu</span>
+      </a>
+      <a href="#" class="nav-item" data-section="cgpa">
+        <i class="ph ph-calculator"></i>
+        <span>SGPA/CGPA</span>
+      </a>
+      <a href="#" class="nav-item" data-section="tasks">
+        <i class="ph ph-check-square"></i>
+        <span>Tasks</span>
+      </a>
+    </nav>
+
+    <!-- Dark/Light Mode Toggle at bottom of sidebar -->
+    <div class="sidebar-footer">
+      <button class="theme-toggle" id="themeToggle" title="Toggle dark/light mode">
+        <i class="ph ph-moon" id="themeIcon"></i>
+        <span id="themeLabel">Dark Mode</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- Mobile Topbar (hamburger) -->
+  <header class="mobile-topbar">
+    <button class="hamburger" id="hamburger" aria-label="Open menu">
+      <i class="ph ph-list"></i>
+    </button>
+    <span class="mobile-title">Campus Companion</span>
+    <button class="theme-toggle-mobile" id="themeToggleMobile">
+      <i class="ph ph-moon" id="themeIconMobile"></i>
+    </button>
+  </header>
+
+  <!-- Sidebar Overlay (mobile) -->
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+  <!-- ══════════════════════════════════════════
+       MAIN CONTENT AREA
+  ══════════════════════════════════════════ -->
+  <main class="main-content">
+
+    <!-- ── SECTION: Dashboard ── -->
+    <section class="section active" id="section-dashboard">
+
+      <!-- Greeting + Date/Time -->
+      <div class="dashboard-header">
+        <div class="greeting-block">
+          <p class="greeting-sub">Good morning,</p>
+          <h1 class="greeting-name" id="greetingName">Student 👋</h1>
+          <p class="greeting-date" id="liveDate"></p>
+        </div>
+        <div class="live-clock" id="liveClock">00:00:00</div>
+      </div>
+
+      <!-- Quick Stats Cards -->
+      <div class="stats-grid">
+        <div class="stat-card card-blue">
+          <div class="stat-icon"><i class="ph-fill ph-books"></i></div>
+          <div class="stat-info">
+            <p class="stat-label">Subjects</p>
+            <h2 class="stat-value" id="statSubjects">0</h2>
+          </div>
+        </div>
+        <div class="stat-card card-green">
+          <div class="stat-icon"><i class="ph-fill ph-trend-up"></i></div>
+          <div class="stat-info">
+            <p class="stat-label">Avg. Attendance</p>
+            <h2 class="stat-value" id="statAttendance">0%</h2>
+          </div>
+        </div>
+        <div class="stat-card card-amber">
+          <div class="stat-icon"><i class="ph-fill ph-check-circle"></i></div>
+          <div class="stat-info">
+            <p class="stat-label">Tasks Done</p>
+            <h2 class="stat-value" id="statTasks">0/0</h2>
+          </div>
+        </div>
+        <div class="stat-card card-purple">
+          <div class="stat-icon"><i class="ph-fill ph-star"></i></div>
+          <div class="stat-info">
+            <p class="stat-label">SGPA</p>
+            <h2 class="stat-value" id="statSGPA">–</h2>
+          </div>
+        </div>
+      </div>
+
+      <!-- Row: Countdown + Mess Preview -->
+      <div class="dashboard-row">
+
+        <!-- Upcoming Class Countdown -->
+        <div class="glass-card countdown-card">
+          <h3 class="card-title"><i class="ph ph-alarm"></i> Next Class</h3>
+          <div id="nextClassInfo">
+            <p class="next-class-name" id="nextClassName">No class today</p>
+            <p class="next-class-time" id="nextClassTime">–</p>
+            <div class="countdown-timer" id="countdownTimer">–</div>
+          </div>
+        </div>
+
+        <!-- Today's Mess Preview -->
+        <div class="glass-card mess-preview-card">
+          <h3 class="card-title"><i class="ph ph-fork-knife"></i> Today's Mess</h3>
+          <div class="mess-preview-grid" id="messPreview">
+            <div class="mess-preview-item">
+              <span class="meal-tag breakfast">🍳 Breakfast</span>
+              <p id="prevBreakfast">–</p>
+            </div>
+            <div class="mess-preview-item">
+              <span class="meal-tag lunch">🍱 Lunch</span>
+              <p id="prevLunch">–</p>
+            </div>
+            <div class="mess-preview-item">
+              <span class="meal-tag snacks">🫖 Snacks</span>
+              <p id="prevSnacks">–</p>
+            </div>
+            <div class="mess-preview-item">
+              <span class="meal-tag dinner">🌙 Dinner</span>
+              <p id="prevDinner">–</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Attendance Summary Preview -->
+      <div class="glass-card">
+        <h3 class="card-title"><i class="ph ph-chart-bar"></i> Attendance Overview</h3>
+        <div id="dashboardAttendance">
+          <p class="empty-state">No subjects added yet. Go to Attendance to add subjects.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── SECTION: Timetable ── -->
+    <section class="section" id="section-timetable">
+      <div class="section-header">
+        <h2 class="section-title">📅 Timetable</h2>
+        <div class="section-actions">
+          <!-- Search box -->
+          <div class="search-box">
+            <i class="ph ph-magnifying-glass"></i>
+            <input type="text" id="ttSearch" placeholder="Search subject…" />
+          </div>
+          <button class="btn btn-primary" id="ttAddBtn">
+            <i class="ph ph-plus"></i> Add Class
+          </button>
+        </div>
+      </div>
+
+      <!-- Day selector tabs -->
+      <div class="day-tabs" id="dayTabs">
+        <button class="day-tab active" data-day="Monday">Mon</button>
+        <button class="day-tab" data-day="Tuesday">Tue</button>
+        <button class="day-tab" data-day="Wednesday">Wed</button>
+        <button class="day-tab" data-day="Thursday">Thu</button>
+        <button class="day-tab" data-day="Friday">Fri</button>
+        <button class="day-tab" data-day="Saturday">Sat</button>
+      </div>
+
+      <!-- Timetable grid for selected day -->
+      <div class="timetable-grid" id="timetableGrid">
+        <p class="empty-state">No classes on this day. Click "Add Class" to get started.</p>
+      </div>
+    </section>
+
+    <!-- ── SECTION: Attendance ── -->
+    <section class="section" id="section-attendance">
+      <div class="section-header">
+        <h2 class="section-title">📊 Attendance Tracker</h2>
+        <button class="btn btn-primary" id="attAddBtn">
+          <i class="ph ph-plus"></i> Add Subject
+        </button>
+      </div>
+
+      <!-- Warning banner (shown when avg < 75%) -->
+      <div class="warning-banner" id="attendanceWarning" style="display:none;">
+        <i class="ph-fill ph-warning"></i>
+        <strong>Warning!</strong> Your average attendance is below 75%. Take action!
+      </div>
+
+      <!-- Subject cards list -->
+      <div class="attendance-list" id="attendanceList">
+        <p class="empty-state">No subjects added. Click "Add Subject" to begin tracking.</p>
+      </div>
+    </section>
+
+    <!-- ── SECTION: Mess Menu ── -->
+    <section class="section" id="section-mess">
+      <div class="section-header">
+        <h2 class="section-title">🍽️ Mess Menu</h2>
+        <div class="section-actions">
+          <!-- Day selector for mess -->
+          <select class="select-input" id="messDay">
+            <option value="Monday">Monday</option>
+            <option value="Tuesday">Tuesday</option>
+            <option value="Wednesday">Wednesday</option>
+            <option value="Thursday">Thursday</option>
+            <option value="Friday">Friday</option>
+            <option value="Saturday">Saturday</option>
+            <option value="Sunday">Sunday</option>
+          </select>
+          <button class="btn btn-primary" id="messEditBtn">
+            <i class="ph ph-pencil"></i> Edit Menu
+          </button>
+        </div>
+      </div>
+
+      <!-- 4 meal cards -->
+      <div class="mess-grid" id="messGrid">
+        <!-- Cards rendered by JS -->
+      </div>
+    </section>
+
+    <!-- ── SECTION: SGPA/CGPA Calculator ── -->
+    <section class="section" id="section-cgpa">
+      <div class="section-header">
+        <h2 class="section-title">🎓 SGPA / CGPA Calculator</h2>
+        <button class="btn btn-primary" id="cgpaAddBtn">
+          <i class="ph ph-plus"></i> Add Subject
+        </button>
+      </div>
+
+      <!-- Subjects table for SGPA -->
+      <div class="glass-card">
+        <h3 class="card-title">Semester Subjects</h3>
+        <div class="cgpa-table-wrapper">
+          <table class="cgpa-table" id="cgpaTable">
+            <thead>
+              <tr>
+                <th>Subject</th>
+                <th>Credits</th>
+                <th>Grade (0-10)</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="cgpaBody">
+              <!-- Rows added by JS -->
+            </tbody>
+          </table>
+        </div>
+        <div class="cgpa-result">
+          <div class="result-badge">
+            SGPA: <strong id="sgpaResult">–</strong>
+          </div>
+          <button class="btn btn-secondary" id="calcSGPA">Calculate SGPA</button>
+        </div>
+      </div>
+
+      <!-- CGPA estimator -->
+      <div class="glass-card cgpa-card">
+        <h3 class="card-title">CGPA Estimator</h3>
+        <p class="helper-text">Enter your past semesters' SGPA values and the current semester's SGPA will be included automatically.</p>
+        <div id="pastSemesters">
+          <!-- Past semester inputs rendered by JS -->
+        </div>
+        <div class="cgpa-actions">
+          <button class="btn btn-outline" id="addSemBtn">+ Add Semester</button>
+          <button class="btn btn-primary" id="calcCGPA">Calculate CGPA</button>
+        </div>
+        <div class="cgpa-result">
+          <div class="result-badge">
+            CGPA: <strong id="cgpaResult">–</strong>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── SECTION: Tasks / Notes ── -->
+    <section class="section" id="section-tasks">
+      <div class="section-header">
+        <h2 class="section-title">✅ Tasks & Notes</h2>
+      </div>
+
+      <!-- Task input box -->
+      <div class="glass-card task-input-card">
+        <div class="task-form">
+          <input type="text" class="text-input" id="taskInput" placeholder="What do you need to do? (e.g. Submit assignment, Study DSA...)" />
+          <select class="select-input" id="taskPriority">
+            <option value="normal">Normal</option>
+            <option value="high">High Priority</option>
+            <option value="low">Low Priority</option>
+          </select>
+          <button class="btn btn-primary" id="addTaskBtn">
+            <i class="ph ph-plus"></i> Add
+          </button>
+        </div>
+      </div>
+
+      <!-- Filter tabs -->
+      <div class="task-filters">
+        <button class="filter-btn active" data-filter="all">All</button>
+        <button class="filter-btn" data-filter="pending">Pending</button>
+        <button class="filter-btn" data-filter="done">Completed</button>
+        <button class="filter-btn" data-filter="high">High Priority</button>
+      </div>
+
+      <!-- Task list -->
+      <div class="task-list" id="taskList">
+        <p class="empty-state">No tasks yet. Add something above!</p>
+      </div>
+    </section>
+
+  </main><!-- end main-content -->
+
+  <!-- ══════════════════════════════════════════
+       MODALS
+  ══════════════════════════════════════════ -->
+
+  <!-- Modal: Add Timetable Entry -->
+  <div class="modal-overlay" id="ttModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="ttModalTitle">Add Class</h3>
+        <button class="modal-close" data-modal="ttModal"><i class="ph ph-x"></i></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="ttEditIndex" value="-1" />
+        <div class="form-group">
+          <label>Day</label>
+          <select class="select-input" id="ttDay">
+            <option>Monday</option><option>Tuesday</option><option>Wednesday</option>
+            <option>Thursday</option><option>Friday</option><option>Saturday</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Subject Name</label>
+          <input type="text" class="text-input" id="ttSubject" placeholder="e.g. Data Structures" />
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Start Time</label>
+            <input type="time" class="text-input" id="ttStart" />
+          </div>
+          <div class="form-group">
+            <label>End Time</label>
+            <input type="time" class="text-input" id="ttEnd" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Room / Location</label>
+          <input type="text" class="text-input" id="ttRoom" placeholder="e.g. Lab 3, Room 201" />
+        </div>
+        <div class="form-group">
+          <label>Faculty</label>
+          <input type="text" class="text-input" id="ttFaculty" placeholder="e.g. Dr. Sharma" />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" data-modal="ttModal">Cancel</button>
+        <button class="btn btn-primary" id="ttSaveBtn">Save Class</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Add Attendance Subject -->
+  <div class="modal-overlay" id="attModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Add Subject</h3>
+        <button class="modal-close" data-modal="attModal"><i class="ph ph-x"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Subject Name</label>
+          <input type="text" class="text-input" id="attSubject" placeholder="e.g. Operating Systems" />
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Classes Attended</label>
+            <input type="number" class="text-input" id="attPresent" min="0" value="0" />
+          </div>
+          <div class="form-group">
+            <label>Total Classes</label>
+            <input type="number" class="text-input" id="attTotal" min="0" value="0" />
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" data-modal="attModal">Cancel</button>
+        <button class="btn btn-primary" id="attSaveBtn">Add Subject</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Edit Mess Menu -->
+  <div class="modal-overlay" id="messModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="messModalTitle">Edit Menu</h3>
+        <button class="modal-close" data-modal="messModal"><i class="ph ph-x"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>🍳 Breakfast</label>
+          <textarea class="text-input textarea" id="messBreakfast" rows="2" placeholder="e.g. Idli, Sambar, Coconut Chutney"></textarea>
+        </div>
+        <div class="form-group">
+          <label>🍱 Lunch</label>
+          <textarea class="text-input textarea" id="messLunch" rows="2" placeholder="e.g. Rice, Dal, Sabzi, Roti, Papad"></textarea>
+        </div>
+        <div class="form-group">
+          <label>🫖 Snacks</label>
+          <textarea class="text-input textarea" id="messSnacks" rows="2" placeholder="e.g. Biscuits, Tea, Bread Butter"></textarea>
+        </div>
+        <div class="form-group">
+          <label>🌙 Dinner</label>
+          <textarea class="text-input textarea" id="messDinner" rows="2" placeholder="e.g. Chapati, Paneer Curry, Rice"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" data-modal="messModal">Cancel</button>
+        <button class="btn btn-primary" id="messSaveBtn">Save Menu</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       FOOTER
+  ══════════════════════════════════════════ -->
+  <footer class="app-footer">
+    <p>Built with ❤️ by <strong>Sohum Sardana</strong> &nbsp;|&nbsp; Campus Companion &copy; 2025</p>
+  </footer>
+
+  <!-- Main Script (loaded last so DOM is ready) -->
+  <script src="script.js"></script>
+</body>
+</html>
