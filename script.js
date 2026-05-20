@@ -1,148 +1,70 @@
-/* ═══════════════════════════════════════════════════════════════════
-   CAMPUS COMPANION — script.js
-   Author : Sohum Sardana
-   Purpose: All interactivity for the Campus Companion web app.
-
-   HOW THIS FILE IS ORGANISED
-   ──────────────────────────
-   1.  Constants & localStorage helpers
-   2.  App initialisation  (runs on DOMContentLoaded)
-   3.  Navigation / sidebar
-   4.  Theme toggle  (dark ↔ light)
-   5.  Clock & greeting
-   6.  Dashboard stats
-   7.  Timetable module
-   8.  Attendance module
-   9.  Mess menu module
-   10. SGPA / CGPA calculator
-   11. Tasks module
-   12. Modal helpers
-   13. Utility functions
-═══════════════════════════════════════════════════════════════════ */
-
-
-/* ═══════════════════════════════════════════════════════════════════
-   1.  CONSTANTS & LOCAL-STORAGE HELPERS
-   ─────────────────────────────────────
-   We keep all localStorage keys in one place so we never mistype them.
-   The get/set/remove helpers handle JSON parsing automatically.
-═══════════════════════════════════════════════════════════════════ */
-
 const KEYS = {
-  theme:      "cc_theme",        // "dark" | "light"
-  timetable:  "cc_timetable",    // array of class objects
-  attendance: "cc_attendance",   // array of subject objects
-  mess:       "cc_mess",         // object  { Monday:{breakfast,lunch,…}, … }
-  tasks:      "cc_tasks",        // array of task objects
-  cgpa:       "cc_cgpa",         // array of past SGPA values
+  theme:      "cc_theme",
+  timetable:  "cc_timetable",
+  attendance: "cc_attendance",
+  mess:       "cc_mess",
+  tasks:      "cc_tasks",
+  cgpa:       "cc_cgpa",
 };
 
-/**
- * lsGet – Read a value from localStorage and parse it as JSON.
- * Returns `defaultVal` if the key doesn't exist yet.
- */
 function lsGet(key, defaultVal = null) {
   const raw = localStorage.getItem(key);
   if (raw === null) return defaultVal;
   try { return JSON.parse(raw); } catch { return defaultVal; }
 }
 
-/**
- * lsSet – Stringify a value and save it to localStorage.
- */
 function lsSet(key, value) {
   localStorage.setItem(key, JSON.stringify(value));
 }
 
-
-/* ═══════════════════════════════════════════════════════════════════
-   2.  APP INITIALISATION
-   ──────────────────────
-   Everything kicks off here once the HTML is fully loaded.
-═══════════════════════════════════════════════════════════════════ */
-
+//init
 document.addEventListener("DOMContentLoaded", () => {
-  // Apply saved theme before anything renders (prevents flash)
   applyTheme(lsGet(KEYS.theme, "dark"));
-
-  // Start the live clock
   startClock();
-
-  // Wire up navigation
   initNavigation();
-
-  // Wire up mobile sidebar hamburger
   initMobileSidebar();
-
-  // Wire up theme toggle buttons
   initThemeToggle();
-
-  // Load all modules
   renderDashboard();
   initTimetable();
   initAttendance();
   initMess();
   initCGPA();
   initTasks();
-
-  // Wire up all modal close buttons
   initModals();
 });
 
-
-/* ═══════════════════════════════════════════════════════════════════
-   3.  NAVIGATION / SIDEBAR
-   ────────────────────────
-   Clicking a nav item hides all sections and shows the target one.
-═══════════════════════════════════════════════════════════════════ */
-
+//navigation
 function initNavigation() {
-  // Get every nav link in the sidebar
   const navItems = document.querySelectorAll(".nav-item");
 
   navItems.forEach(item => {
     item.addEventListener("click", (e) => {
       e.preventDefault();
-
-      // Which section should we show?
       const targetSection = item.dataset.section;
 
-      // Remove "active" from all nav items, add to clicked one
       navItems.forEach(n => n.classList.remove("active"));
       item.classList.add("active");
 
-      // Hide all sections, show target
       document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
       document.getElementById("section-" + targetSection).classList.add("active");
 
-      // Refresh dashboard stats every time we return to dashboard
       if (targetSection === "dashboard") renderDashboard();
-
-      // Close mobile sidebar after navigation
       closeMobileSidebar();
     });
   });
 }
 
-
-/* ═══════════════════════════════════════════════════════════════════
-   4.  MOBILE SIDEBAR
-   ──────────────────
-   On small screens the sidebar is hidden and toggled by hamburger.
-═══════════════════════════════════════════════════════════════════ */
-
+//sidebar for mobile
 function initMobileSidebar() {
   const hamburger = document.getElementById("hamburger");
   const sidebar   = document.getElementById("sidebar");
   const overlay   = document.getElementById("sidebarOverlay");
 
-  // Open sidebar
   hamburger.addEventListener("click", () => {
     sidebar.classList.add("open");
     overlay.classList.add("active");
   });
 
-  // Close sidebar when overlay is tapped
   overlay.addEventListener("click", closeMobileSidebar);
 }
 
@@ -151,17 +73,9 @@ function closeMobileSidebar() {
   document.getElementById("sidebarOverlay").classList.remove("active");
 }
 
-
-/* ═══════════════════════════════════════════════════════════════════
-   5.  THEME TOGGLE
-   ─────────────────
-   Toggles between "dark" and "light" on the <html> element.
-═══════════════════════════════════════════════════════════════════ */
-
+//theme toggle
 function initThemeToggle() {
-  // Desktop button (inside sidebar)
   document.getElementById("themeToggle").addEventListener("click", toggleTheme);
-  // Mobile button (in topbar)
   document.getElementById("themeToggleMobile").addEventListener("click", toggleTheme);
 }
 
@@ -172,13 +86,9 @@ function toggleTheme() {
   lsSet(KEYS.theme, next);
 }
 
-/**
- * applyTheme – Sets data-theme attribute and updates icon/label.
- */
 function applyTheme(theme) {
   document.documentElement.setAttribute("data-theme", theme);
 
-  // Update desktop sidebar icon + label
   const icon  = document.getElementById("themeIcon");
   const label = document.getElementById("themeLabel");
   const iconM = document.getElementById("themeIconMobile");
@@ -194,15 +104,8 @@ function applyTheme(theme) {
   }
 }
 
-
-/* ═══════════════════════════════════════════════════════════════════
-   6.  CLOCK & GREETING
-   ─────────────────────
-   Updates the live clock every second and sets the greeting text.
-═══════════════════════════════════════════════════════════════════ */
-
+//clock and date
 function startClock() {
-  // Run immediately, then repeat every 1000ms
   updateClock();
   setInterval(updateClock, 1000);
 }
@@ -210,17 +113,14 @@ function startClock() {
 function updateClock() {
   const now = new Date();
 
-  /* ── Live clock ── */
   document.getElementById("liveClock").textContent = now.toLocaleTimeString("en-IN", {
     hour: "2-digit", minute: "2-digit", second: "2-digit"
   });
 
-  /* ── Date string ── */
   document.getElementById("liveDate").textContent = now.toLocaleDateString("en-IN", {
     weekday: "long", year: "numeric", month: "long", day: "numeric"
   });
 
-  /* ── Greeting based on hour ── */
   const hour = now.getHours();
   const greetEl = document.querySelector(".greeting-sub");
   if (greetEl) {
@@ -229,26 +129,16 @@ function updateClock() {
     else                 greetEl.textContent = "Good evening,";
   }
 
-  /* ── Update countdown every second ── */
   updateNextClassCountdown();
 }
 
-
-/* ═══════════════════════════════════════════════════════════════════
-   7A.  DASHBOARD — RENDER
-   ────────────────────────
-   Pulls data from all modules and populates the dashboard cards.
-═══════════════════════════════════════════════════════════════════ */
-
+//dashboard
 function renderDashboard() {
   const attendance = lsGet(KEYS.attendance, []);
   const tasks      = lsGet(KEYS.tasks, []);
-  const timetable  = lsGet(KEYS.timetable, []);
 
-  /* ── Stat: Subject count ── */
   document.getElementById("statSubjects").textContent = attendance.length;
 
-  /* ── Stat: Average attendance ── */
   if (attendance.length > 0) {
     const avg = attendance.reduce((sum, s) => {
       return sum + (s.total > 0 ? (s.present / s.total) * 100 : 0);
@@ -258,25 +148,17 @@ function renderDashboard() {
     document.getElementById("statAttendance").textContent = "–";
   }
 
-  /* ── Stat: Tasks done / total ── */
-  const done  = tasks.filter(t => t.done).length;
+  const done = tasks.filter(t => t.done).length;
   document.getElementById("statTasks").textContent = `${done}/${tasks.length}`;
 
-  /* ── Stat: SGPA (from CGPA section) ── */
   const cgpaSubs = lsGet(KEYS.cgpa + "_subs", []);
   const sgpaVal  = calculateSGPAValue(cgpaSubs);
   document.getElementById("statSGPA").textContent = sgpaVal > 0 ? sgpaVal.toFixed(2) : "–";
 
-  /* ── Attendance overview ── */
   renderDashboardAttendance(attendance);
-
-  /* ── Mess preview ── */
   renderMessPreview();
 }
-
-/**
- * Renders compact attendance bars on the dashboard.
- */
+//attendance preview on dashboard
 function renderDashboardAttendance(attendance) {
   const container = document.getElementById("dashboardAttendance");
   if (attendance.length === 0) {
@@ -298,12 +180,9 @@ function renderDashboardAttendance(attendance) {
     `;
   }).join("");
 }
-
-/**
- * Shows today's mess preview on the dashboard.
- */
+// mess menu preview on dashboard
 function renderMessPreview() {
-  const dayName = getDayName();            // e.g. "Monday"
+  const dayName  = getDayName();
   const messData = lsGet(KEYS.mess, {});
   const today    = messData[dayName] || {};
 
@@ -313,47 +192,35 @@ function renderMessPreview() {
   document.getElementById("prevDinner").textContent    = today.dinner    || "Not set";
 }
 
-
-/* ═══════════════════════════════════════════════════════════════════
-   7B.  NEXT CLASS COUNTDOWN
-   ──────────────────────────
-   Scans today's timetable and finds the nearest upcoming class.
-═══════════════════════════════════════════════════════════════════ */
-
+//next class countdown on dashboard
 function updateNextClassCountdown() {
   const timetable = lsGet(KEYS.timetable, []);
   const now       = new Date();
   const dayName   = getDayName();
 
-  // Filter classes for today and that haven't ended yet
   const todayClasses = timetable
     .filter(c => c.day === dayName)
     .map(c => ({ ...c, startMs: timeToMs(c.start), endMs: timeToMs(c.end) }))
     .sort((a, b) => a.startMs - b.startMs);
 
-  const nowMs = now.getHours() * 3600000 + now.getMinutes() * 60000 + now.getSeconds() * 1000;
-
-  // Find the next class that hasn't started yet
-  const next = todayClasses.find(c => c.startMs > nowMs);
-  // Or the currently ongoing class
+  const nowMs   = now.getHours() * 3600000 + now.getMinutes() * 60000 + now.getSeconds() * 1000;
+  const next    = todayClasses.find(c => c.startMs > nowMs);
   const ongoing = todayClasses.find(c => c.startMs <= nowMs && c.endMs > nowMs);
 
   const nameEl      = document.getElementById("nextClassName");
   const timeEl      = document.getElementById("nextClassTime");
   const countdownEl = document.getElementById("countdownTimer");
 
-  if (!nameEl) return; // Dashboard not mounted
+  if (!nameEl) return;
 
   if (ongoing) {
     nameEl.textContent      = "🟢 " + ongoing.subject + " (ongoing)";
     timeEl.textContent      = `${ongoing.start} – ${ongoing.end}  ${ongoing.room ? "| " + ongoing.room : ""}`;
-    const remaining         = ongoing.endMs - nowMs;
-    countdownEl.textContent = "Ends in " + formatCountdown(remaining);
+    countdownEl.textContent = "Ends in " + formatCountdown(ongoing.endMs - nowMs);
   } else if (next) {
     nameEl.textContent      = next.subject;
     timeEl.textContent      = `${next.start} – ${next.end}  ${next.room ? "| " + next.room : ""}`;
-    const diff              = next.startMs - nowMs;
-    countdownEl.textContent = formatCountdown(diff);
+    countdownEl.textContent = formatCountdown(next.startMs - nowMs);
   } else {
     nameEl.textContent      = "No more classes today 🎉";
     timeEl.textContent      = "";
@@ -361,9 +228,6 @@ function updateNextClassCountdown() {
   }
 }
 
-/**
- * formatCountdown – Converts milliseconds into "HH:MM:SS" string.
- */
 function formatCountdown(ms) {
   const totalSec = Math.floor(ms / 1000);
   const h = Math.floor(totalSec / 3600);
@@ -372,27 +236,15 @@ function formatCountdown(ms) {
   return [h, m, s].map(v => String(v).padStart(2, "0")).join(":");
 }
 
-/**
- * timeToMs – Converts "HH:MM" string to milliseconds since midnight.
- */
 function timeToMs(timeStr) {
   const [h, m] = timeStr.split(":").map(Number);
   return h * 3600000 + m * 60000;
 }
 
-
-/* ═══════════════════════════════════════════════════════════════════
-   8.  TIMETABLE MODULE
-   ─────────────────────
-   Allows adding/editing/deleting classes per day.
-   Data shape: array of { id, day, subject, start, end, room, faculty }
-═══════════════════════════════════════════════════════════════════ */
-
-/** Currently selected day in the timetable tab view. */
+// timetable section
 let currentTTDay = "Monday";
 
 function initTimetable() {
-  // Day tab clicks
   document.querySelectorAll(".day-tab").forEach(tab => {
     tab.addEventListener("click", () => {
       document.querySelectorAll(".day-tab").forEach(t => t.classList.remove("active"));
@@ -402,31 +254,18 @@ function initTimetable() {
     });
   });
 
-  // "Add Class" button opens modal
-  document.getElementById("ttAddBtn").addEventListener("click", () => {
-    openTTModal();  // fresh modal with no pre-filled values
-  });
-
-  // Save button inside modal
+  document.getElementById("ttAddBtn").addEventListener("click", () => openTTModal());
   document.getElementById("ttSaveBtn").addEventListener("click", saveTTEntry);
-
-  // Search box filters displayed subjects
   document.getElementById("ttSearch").addEventListener("input", renderTimetable);
 
-  // Initial render for Monday
   renderTimetable();
 }
 
-/**
- * renderTimetable – Draws cards for the currently selected day.
- * Highlights the ongoing class if any.
- */
 function renderTimetable() {
   const grid        = document.getElementById("timetableGrid");
   const searchQuery = document.getElementById("ttSearch").value.toLowerCase().trim();
   const timetable   = lsGet(KEYS.timetable, []);
 
-  // Filter: correct day + optional search query
   let filtered = timetable.filter(c => c.day === currentTTDay);
   if (searchQuery) {
     filtered = filtered.filter(c =>
@@ -436,7 +275,6 @@ function renderTimetable() {
     );
   }
 
-  // Sort by start time
   filtered.sort((a, b) => timeToMs(a.start) - timeToMs(b.start));
 
   if (filtered.length === 0) {
@@ -444,12 +282,11 @@ function renderTimetable() {
     return;
   }
 
-  // Check if any class is currently ongoing (for today only)
-  const nowMs   = getNowMs();
-  const today   = getDayName();
+  const nowMs = getNowMs();
+  const today = getDayName();
 
-  grid.innerHTML = filtered.map((c, idx) => {
-    const isOngoing = (c.day === today) && (timeToMs(c.start) <= nowMs) && (timeToMs(c.end) > nowMs);
+  grid.innerHTML = filtered.map(c => {
+    const isOngoing   = c.day === today && timeToMs(c.start) <= nowMs && timeToMs(c.end) > nowMs;
     const durationMin = Math.round((timeToMs(c.end) - timeToMs(c.start)) / 60000);
 
     return `
@@ -481,15 +318,9 @@ function renderTimetable() {
   }).join("");
 }
 
-/**
- * openTTModal – Opens the add/edit modal.
- * If `id` is provided, pre-fills with existing data (edit mode).
- */
 function openTTModal(id = null) {
   const timetable = lsGet(KEYS.timetable, []);
-  const modal     = document.getElementById("ttModal");
 
-  // Reset all fields first
   document.getElementById("ttEditIndex").value = id !== null ? id : -1;
   document.getElementById("ttSubject").value   = "";
   document.getElementById("ttStart").value     = "";
@@ -499,7 +330,6 @@ function openTTModal(id = null) {
   document.getElementById("ttDay").value       = currentTTDay;
   document.getElementById("ttModalTitle").textContent = id !== null ? "Edit Class" : "Add Class";
 
-  // If editing, fill in existing values
   if (id !== null) {
     const entry = timetable.find(c => c.id === id);
     if (entry) {
@@ -515,16 +345,12 @@ function openTTModal(id = null) {
   openModal("ttModal");
 }
 
-/**
- * saveTTEntry – Reads form values and saves (add or update) to localStorage.
- */
 function saveTTEntry() {
   const subject = document.getElementById("ttSubject").value.trim();
   const start   = document.getElementById("ttStart").value;
   const end     = document.getElementById("ttEnd").value;
 
-  // Simple validation
-  if (!subject) return showToast("Please enter a subject name.", "warn");
+  if (!subject)       return showToast("Please enter a subject name.", "warn");
   if (!start || !end) return showToast("Please set start and end times.", "warn");
   if (start >= end)   return showToast("End time must be after start time.", "warn");
 
@@ -532,7 +358,7 @@ function saveTTEntry() {
   const editId    = parseInt(document.getElementById("ttEditIndex").value);
 
   const entry = {
-    id:      editId !== -1 ? editId : Date.now(),   // use timestamp as unique id
+    id:      editId !== -1 ? editId : Date.now(),
     day:     document.getElementById("ttDay").value,
     subject,
     start,
@@ -542,7 +368,6 @@ function saveTTEntry() {
   };
 
   if (editId !== -1) {
-    // Replace existing entry
     const idx = timetable.findIndex(c => c.id === editId);
     if (idx !== -1) timetable[idx] = entry;
   } else {
@@ -556,25 +381,14 @@ function saveTTEntry() {
   showToast("Class saved!", "success");
 }
 
-/**
- * deleteTTEntry – Removes a class by its id after confirmation.
- */
 function deleteTTEntry(id) {
   if (!confirm("Delete this class?")) return;
-  const timetable = lsGet(KEYS.timetable, []).filter(c => c.id !== id);
-  lsSet(KEYS.timetable, timetable);
+  lsSet(KEYS.timetable, lsGet(KEYS.timetable, []).filter(c => c.id !== id));
   renderTimetable();
   renderDashboard();
   showToast("Class removed.", "info");
 }
 
-
-/* ═══════════════════════════════════════════════════════════════════
-   9.  ATTENDANCE MODULE
-   ──────────────────────
-   Data shape: array of { id, name, present, total }
-   Attendance % = (present / total) * 100
-═══════════════════════════════════════════════════════════════════ */
 
 function initAttendance() {
   document.getElementById("attAddBtn").addEventListener("click", () => openModal("attModal"));
@@ -582,9 +396,6 @@ function initAttendance() {
   renderAttendance();
 }
 
-/**
- * renderAttendance – Draws one card per subject with a progress bar.
- */
 function renderAttendance() {
   const list       = document.getElementById("attendanceList");
   const warning    = document.getElementById("attendanceWarning");
@@ -596,7 +407,6 @@ function renderAttendance() {
     return;
   }
 
-  // Calculate average for warning banner
   const avg = attendance.reduce((sum, s) => {
     return sum + (s.total > 0 ? (s.present / s.total) * 100 : 0);
   }, 0) / attendance.length;
@@ -604,12 +414,10 @@ function renderAttendance() {
   warning.style.display = avg < 75 ? "flex" : "none";
 
   list.innerHTML = attendance.map(sub => {
-    const pct     = sub.total > 0 ? Math.min(100, (sub.present / sub.total) * 100) : 0;
-    const cls     = pct >= 75 ? "good" : pct >= 60 ? "warn" : "bad";
-    const isLow   = pct < 75;
-
-    // How many more classes needed to reach 75%?
-    const needed  = calcClassesNeeded(sub.present, sub.total);
+    const pct    = sub.total > 0 ? Math.min(100, (sub.present / sub.total) * 100) : 0;
+    const cls    = pct >= 75 ? "good" : pct >= 60 ? "warn" : "bad";
+    const isLow  = pct < 75;
+    const needed = calcClassesNeeded(sub.present, sub.total);
 
     return `
       <div class="att-card ${isLow ? "low-attendance" : ""}">
@@ -642,22 +450,18 @@ function renderAttendance() {
   }).join("");
 }
 
-/**
- * saveAttSubject – Reads the modal form and adds a new subject.
- */
 function saveAttSubject() {
   const name    = document.getElementById("attSubject").value.trim();
   const present = parseInt(document.getElementById("attPresent").value) || 0;
   const total   = parseInt(document.getElementById("attTotal").value)   || 0;
 
-  if (!name)        return showToast("Please enter a subject name.", "warn");
+  if (!name)           return showToast("Please enter a subject name.", "warn");
   if (total < present) return showToast("Total classes can't be less than attended.", "warn");
 
   const attendance = lsGet(KEYS.attendance, []);
   attendance.push({ id: Date.now(), name, present, total });
   lsSet(KEYS.attendance, attendance);
 
-  // Clear inputs for next time
   document.getElementById("attSubject").value = "";
   document.getElementById("attPresent").value = "0";
   document.getElementById("attTotal").value   = "0";
@@ -668,9 +472,6 @@ function saveAttSubject() {
   showToast("Subject added!", "success");
 }
 
-/**
- * markAttendance – Increments present count (and total) for a subject.
- */
 function markAttendance(id, status) {
   const attendance = lsGet(KEYS.attendance, []);
   const idx        = attendance.findIndex(s => s.id === id);
@@ -685,79 +486,52 @@ function markAttendance(id, status) {
   showToast(status === "present" ? "Marked Present ✅" : "Marked Absent ❌", status === "present" ? "success" : "warn");
 }
 
-/**
- * deleteAttSubject – Removes a subject from attendance tracking.
- */
 function deleteAttSubject(id) {
   if (!confirm("Remove this subject from attendance tracking?")) return;
-  const updated = lsGet(KEYS.attendance, []).filter(s => s.id !== id);
-  lsSet(KEYS.attendance, updated);
+  lsSet(KEYS.attendance, lsGet(KEYS.attendance, []).filter(s => s.id !== id));
   renderAttendance();
   renderDashboard();
   showToast("Subject removed.", "info");
 }
 
-/**
- * calcClassesNeeded – How many consecutive classes to attend to hit 75%?
- * Formula: (present + x) / (total + x) >= 0.75  →  x = ceil((0.75*total - present) / 0.25)
- */
+// (present + x) / (total + x) >= 0.75
 function calcClassesNeeded(present, total) {
-  if (total === 0 || (present / total) >= 0.75) return 0;
+  if (total === 0 || present / total >= 0.75) return 0;
   return Math.ceil((0.75 * total - present) / 0.25);
 }
 
-/**
- * calcCanSkip – How many classes can be skipped while staying >= 75%?
- * Formula: (present) / (total + x) >= 0.75  →  x = floor(present / 0.75 - total)
- */
+// present / (total + x) >= 0.75
 function calcCanSkip(present, total) {
   return Math.max(0, Math.floor(present / 0.75 - total));
 }
 
 
-/* ═══════════════════════════════════════════════════════════════════
-   10.  MESS MENU MODULE
-   ──────────────────────
-   Data shape: { Monday:{breakfast,lunch,snacks,dinner}, Tuesday:{…}, … }
-═══════════════════════════════════════════════════════════════════ */
-
-/** The currently displayed mess day. */
-let currentMessDay = getDayName(); // default to today
+let currentMessDay = getDayName();
 
 function initMess() {
   const select = document.getElementById("messDay");
-
-  // Set dropdown to today by default
   select.value = currentMessDay;
 
-  // Listen for day change
   select.addEventListener("change", () => {
     currentMessDay = select.value;
     renderMess();
   });
 
-  // "Edit Menu" button opens modal
   document.getElementById("messEditBtn").addEventListener("click", openMessModal);
-
-  // Save inside modal
   document.getElementById("messSaveBtn").addEventListener("click", saveMessMenu);
 
   renderMess();
 }
 
-/**
- * renderMess – Shows 4 meal cards for the selected day.
- */
 function renderMess() {
-  const grid   = document.getElementById("messGrid");
-  const data   = lsGet(KEYS.mess, {});
-  const day    = data[currentMessDay] || {};
+  const grid = document.getElementById("messGrid");
+  const day  = (lsGet(KEYS.mess, {}))[currentMessDay] || {};
 
   const meals = [
-    { key: "breakfast", emoji: "🍳", label: "Breakfast", placeholder: "Not set" },
-    { key: "lunch",     emoji: "🍱", label: "Lunch",     placeholder: "Not set" },
-    { key: "snacks",    emoji: "🫖", label: "Snacks",    placeholder: "Not set" },
-    { key: "dinner",    emoji: "🌙", label: "Dinner",    placeholder: "Not set" },
+    { key: "breakfast", emoji: "🍳", label: "Breakfast" },
+    { key: "lunch",     emoji: "🍱", label: "Lunch"     },
+    { key: "snacks",    emoji: "🫖", label: "Snacks"    },
+    { key: "dinner",    emoji: "🌙", label: "Dinner"    },
   ];
 
   grid.innerHTML = meals.map(m => `
@@ -767,18 +541,14 @@ function renderMess() {
         <span class="mess-meal-title">${m.label}</span>
       </div>
       <div class="mess-meal-content">
-        ${escapeHtml(day[m.key] || m.placeholder)}
+        ${escapeHtml(day[m.key] || "Not set")}
       </div>
     </div>
   `).join("");
 }
 
-/**
- * openMessModal – Pre-fills the modal with current day's menu.
- */
 function openMessModal() {
-  const data = lsGet(KEYS.mess, {});
-  const day  = data[currentMessDay] || {};
+  const day = (lsGet(KEYS.mess, {}))[currentMessDay] || {};
 
   document.getElementById("messModalTitle").textContent = `Edit Menu — ${currentMessDay}`;
   document.getElementById("messBreakfast").value = day.breakfast || "";
@@ -789,13 +559,9 @@ function openMessModal() {
   openModal("messModal");
 }
 
-/**
- * saveMessMenu – Saves the edited menu for the current day.
- */
 function saveMessMenu() {
   const data = lsGet(KEYS.mess, {});
 
-  // Save or update this day's menu
   data[currentMessDay] = {
     breakfast: document.getElementById("messBreakfast").value.trim(),
     lunch:     document.getElementById("messLunch").value.trim(),
@@ -806,41 +572,24 @@ function saveMessMenu() {
   lsSet(KEYS.mess, data);
   closeModal("messModal");
   renderMess();
-  renderMessPreview();   // also update dashboard
+  renderMessPreview();
   showToast("Menu saved!", "success");
 }
 
 
-/* ═══════════════════════════════════════════════════════════════════
-   11.  SGPA / CGPA CALCULATOR
-   ────────────────────────────
-   SGPA = Σ(credits × grade) / Σ(credits)
-   CGPA = average of all semester SGPAs
-═══════════════════════════════════════════════════════════════════ */
-
-/** The list of subjects for the current semester SGPA calculation. */
-let cgpaSubjects = lsGet(KEYS.cgpa + "_subs", []);
-/** The list of past semester SGPAs for CGPA estimation. */
+let cgpaSubjects  = lsGet(KEYS.cgpa + "_subs", []);
 let pastSemesters = lsGet(KEYS.cgpa + "_past", []);
 
 function initCGPA() {
   document.getElementById("cgpaAddBtn").addEventListener("click", addCGPASubjectRow);
   document.getElementById("calcSGPA").addEventListener("click", calculateAndShowSGPA);
-  document.getElementById("addSemBtn").addEventListener("click", addPastSemRow);
+  document.getElementById("addSemBtn").addEventListener("click", () => addPastSemRow());
   document.getElementById("calcCGPA").addEventListener("click", calculateAndShowCGPA);
 
-  // Render saved subjects if any
-  cgpaSubjects.forEach(() => addCGPASubjectRow());
   restoreCGPASubjects();
-
-  // Render past semesters
   pastSemesters.forEach(v => addPastSemRow(v));
 }
 
-/**
- * addCGPASubjectRow – Adds a new row to the subjects table.
- * Optionally pre-fills values from saved data.
- */
 function addCGPASubjectRow() {
   const tbody = document.getElementById("cgpaBody");
   const rowId = "cgpar_" + Date.now();
@@ -860,61 +609,40 @@ function addCGPASubjectRow() {
   tbody.appendChild(tr);
 }
 
-/**
- * removeCGPARow – Removes a subject row from the table.
- */
 function removeCGPARow(rowId) {
-  const row = document.getElementById(rowId);
-  if (row) row.remove();
+  document.getElementById(rowId)?.remove();
   saveCGPASubjects();
 }
 
-/**
- * calculateAndShowSGPA – Reads all table rows and computes SGPA.
- */
 function calculateAndShowSGPA() {
-  const rows = document.querySelectorAll("#cgpaBody tr");
   const subjects = [];
 
-  rows.forEach(row => {
-    const name   = row.querySelector(".cgpa-name")?.value.trim()    || "Subject";
+  document.querySelectorAll("#cgpaBody tr").forEach(row => {
+    const name   = row.querySelector(".cgpa-name")?.value.trim() || "Subject";
     const credit = parseFloat(row.querySelector(".cgpa-credit")?.value) || 0;
     const grade  = parseFloat(row.querySelector(".cgpa-grade")?.value)  || 0;
     if (credit > 0) subjects.push({ name, credit, grade });
   });
 
-  if (subjects.length === 0) {
-    return showToast("Add at least one subject with credits.", "warn");
-  }
+  if (subjects.length === 0) return showToast("Add at least one subject with credits.", "warn");
 
   const sgpa = calculateSGPAValue(subjects);
   document.getElementById("sgpaResult").textContent = sgpa.toFixed(2);
   document.getElementById("statSGPA").textContent   = sgpa.toFixed(2);
 
-  // Persist subject rows
   saveCGPASubjects(subjects);
   showToast("SGPA calculated!", "success");
 }
 
-/**
- * calculateSGPAValue – Pure function: returns SGPA number given subjects array.
- * @param {Array} subjects - [{credit, grade}, …]
- * @returns {number} SGPA
- */
 function calculateSGPAValue(subjects) {
   if (!subjects || subjects.length === 0) return 0;
   const totalCredits = subjects.reduce((s, sub) => s + sub.credit, 0);
   if (totalCredits === 0) return 0;
-  const weightedSum  = subjects.reduce((s, sub) => s + sub.credit * sub.grade, 0);
-  return weightedSum / totalCredits;
+  return subjects.reduce((s, sub) => s + sub.credit * sub.grade, 0) / totalCredits;
 }
 
-/**
- * saveCGPASubjects – Persists the current semester subjects.
- */
 function saveCGPASubjects(subjects) {
   if (!subjects) {
-    // Read from DOM
     subjects = [];
     document.querySelectorAll("#cgpaBody tr").forEach(row => {
       const credit = parseFloat(row.querySelector(".cgpa-credit")?.value) || 0;
@@ -927,27 +655,19 @@ function saveCGPASubjects(subjects) {
   cgpaSubjects = subjects;
 }
 
-/**
- * restoreCGPASubjects – Fills the table rows from saved data.
- */
 function restoreCGPASubjects() {
   const saved = lsGet(KEYS.cgpa + "_subs", []);
   const tbody = document.getElementById("cgpaBody");
-  tbody.innerHTML = ""; // clear first
+  tbody.innerHTML = "";
   saved.forEach(sub => {
     addCGPASubjectRow();
-    const rows = tbody.querySelectorAll("tr");
-    const last = rows[rows.length - 1];
+    const last = tbody.querySelectorAll("tr")[tbody.querySelectorAll("tr").length - 1];
     last.querySelector(".cgpa-name").value   = sub.name;
     last.querySelector(".cgpa-credit").value = sub.credit;
     last.querySelector(".cgpa-grade").value  = sub.grade;
   });
 }
 
-/**
- * addPastSemRow – Adds an input for a past semester's SGPA.
- * @param {number} value - pre-fill value (optional)
- */
 function addPastSemRow(value = "") {
   const container = document.getElementById("pastSemesters");
   const semNum    = container.children.length + 1;
@@ -966,58 +686,34 @@ function addPastSemRow(value = "") {
   container.appendChild(div);
 }
 
-/**
- * calculateAndShowCGPA – Averages all semester SGPAs.
- */
 function calculateAndShowCGPA() {
-  // Collect past semester values
   const rows  = document.querySelectorAll("#pastSemesters .past-sem-row input");
   const sgpas = Array.from(rows).map(i => parseFloat(i.value)).filter(v => !isNaN(v) && v > 0);
 
-  // Include current semester's SGPA if already calculated
   const currentSGPA = parseFloat(document.getElementById("sgpaResult").textContent);
   if (!isNaN(currentSGPA) && currentSGPA > 0) sgpas.push(currentSGPA);
 
-  if (sgpas.length === 0) {
-    return showToast("Enter at least one semester SGPA.", "warn");
-  }
+  if (sgpas.length === 0) return showToast("Enter at least one semester SGPA.", "warn");
 
-  const cgpa = sgpas.reduce((s, v) => s + v, 0) / sgpas.length;
-  document.getElementById("cgpaResult").textContent = cgpa.toFixed(2);
-
+  document.getElementById("cgpaResult").textContent = (sgpas.reduce((s, v) => s + v, 0) / sgpas.length).toFixed(2);
   savePastSems();
   showToast("CGPA calculated!", "success");
 }
 
-/**
- * savePastSems – Saves the past semester SGPA values.
- */
 function savePastSems() {
-  const rows  = document.querySelectorAll("#pastSemesters .past-sem-row input");
-  const sgpas = Array.from(rows).map(i => parseFloat(i.value) || "");
-  lsSet(KEYS.cgpa + "_past", sgpas);
+  const rows = document.querySelectorAll("#pastSemesters .past-sem-row input");
+  lsSet(KEYS.cgpa + "_past", Array.from(rows).map(i => parseFloat(i.value) || ""));
 }
 
 
-/* ═══════════════════════════════════════════════════════════════════
-   12.  TASKS MODULE
-   ──────────────────
-   Data shape: array of { id, text, priority, done, createdAt }
-═══════════════════════════════════════════════════════════════════ */
-
-/** Active filter for the task list. */
 let taskFilter = "all";
 
 function initTasks() {
-  // Add task button
   document.getElementById("addTaskBtn").addEventListener("click", addTask);
-
-  // Also allow pressing Enter in the input box
-  document.getElementById("taskInput").addEventListener("keydown", (e) => {
+  document.getElementById("taskInput").addEventListener("keydown", e => {
     if (e.key === "Enter") addTask();
   });
 
-  // Filter buttons
   document.querySelectorAll(".filter-btn").forEach(btn => {
     btn.addEventListener("click", () => {
       document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
@@ -1030,9 +726,6 @@ function initTasks() {
   renderTasks();
 }
 
-/**
- * addTask – Reads input and creates a new task.
- */
 function addTask() {
   const text     = document.getElementById("taskInput").value.trim();
   const priority = document.getElementById("taskPriority").value;
@@ -1040,7 +733,7 @@ function addTask() {
   if (!text) return showToast("Please type a task first.", "warn");
 
   const tasks = lsGet(KEYS.tasks, []);
-  tasks.unshift({               // unshift = add to beginning of array
+  tasks.unshift({
     id:        Date.now(),
     text,
     priority,
@@ -1055,14 +748,10 @@ function addTask() {
   showToast("Task added!", "success");
 }
 
-/**
- * renderTasks – Draws the task list filtered by current tab.
- */
 function renderTasks() {
-  const list  = document.getElementById("taskList");
-  let   tasks = lsGet(KEYS.tasks, []);
+  const list = document.getElementById("taskList");
+  let tasks  = lsGet(KEYS.tasks, []);
 
-  // Apply filter
   if (taskFilter === "pending") tasks = tasks.filter(t => !t.done);
   if (taskFilter === "done")    tasks = tasks.filter(t =>  t.done);
   if (taskFilter === "high")    tasks = tasks.filter(t =>  t.priority === "high");
@@ -1086,9 +775,6 @@ function renderTasks() {
   `).join("");
 }
 
-/**
- * toggleTask – Flips the done/pending state of a task.
- */
 function toggleTask(id) {
   const tasks = lsGet(KEYS.tasks, []);
   const idx   = tasks.findIndex(t => t.id === id);
@@ -1100,27 +786,15 @@ function toggleTask(id) {
   }
 }
 
-/**
- * deleteTask – Permanently removes a task.
- */
 function deleteTask(id) {
-  const tasks = lsGet(KEYS.tasks, []).filter(t => t.id !== id);
-  lsSet(KEYS.tasks, tasks);
+  lsSet(KEYS.tasks, lsGet(KEYS.tasks, []).filter(t => t.id !== id));
   renderTasks();
   renderDashboard();
   showToast("Task deleted.", "info");
 }
 
 
-/* ═══════════════════════════════════════════════════════════════════
-   13.  MODAL HELPERS
-   ───────────────────
-   openModal / closeModal control the .open CSS class.
-   We also wire up every .modal-close button here.
-═══════════════════════════════════════════════════════════════════ */
-
 function initModals() {
-  // All close buttons carry a data-modal="<id>" attribute
   document.querySelectorAll(".modal-close, [data-modal]").forEach(btn => {
     btn.addEventListener("click", () => {
       const modalId = btn.dataset.modal;
@@ -1128,49 +802,26 @@ function initModals() {
     });
   });
 
-  // Close modal when clicking the dark overlay itself
   document.querySelectorAll(".modal-overlay").forEach(overlay => {
-    overlay.addEventListener("click", (e) => {
-      // Only close if the click is directly on the overlay, not the modal card inside
+    overlay.addEventListener("click", e => {
       if (e.target === overlay) closeModal(overlay.id);
     });
   });
 }
 
-function openModal(id) {
-  document.getElementById(id).classList.add("open");
-}
-
-function closeModal(id) {
-  document.getElementById(id).classList.remove("open");
-}
+function openModal(id)  { document.getElementById(id).classList.add("open");    }
+function closeModal(id) { document.getElementById(id).classList.remove("open"); }
 
 
-/* ═══════════════════════════════════════════════════════════════════
-   14.  UTILITY FUNCTIONS
-   ──────────────────────
-   Small helpers used throughout the app.
-═══════════════════════════════════════════════════════════════════ */
-
-/**
- * getDayName – Returns the current day as "Monday", "Tuesday", etc.
- */
 function getDayName() {
   return new Date().toLocaleDateString("en-US", { weekday: "long" });
 }
 
-/**
- * getNowMs – Returns milliseconds since midnight for "right now".
- */
 function getNowMs() {
   const n = new Date();
   return n.getHours() * 3600000 + n.getMinutes() * 60000 + n.getSeconds() * 1000;
 }
 
-/**
- * escapeHtml – Prevents XSS by encoding user-typed HTML characters.
- * Always use this when inserting user data into innerHTML.
- */
 function escapeHtml(str) {
   if (!str) return "";
   return str
@@ -1181,26 +832,14 @@ function escapeHtml(str) {
     .replace(/'/g, "&#039;");
 }
 
-/* ── Toast Notification ──────────────────────────────────────── */
 
 let toastTimeout = null;
 
-/**
- * showToast – Shows a brief notification at the bottom of the screen.
- * @param {string} message - The text to show
- * @param {string} type    - "success" | "warn" | "info"
- */
 function showToast(message, type = "info") {
-  // Remove existing toast if any
-  const existing = document.getElementById("cc-toast");
-  if (existing) existing.remove();
+  document.getElementById("cc-toast")?.remove();
   if (toastTimeout) clearTimeout(toastTimeout);
 
-  const colors = {
-    success: "var(--green)",
-    warn:    "var(--amber)",
-    info:    "var(--accent)",
-  };
+  const colors = { success: "var(--green)", warn: "var(--amber)", info: "var(--accent)" };
 
   const toast = document.createElement("div");
   toast.id    = "cc-toast";
@@ -1224,9 +863,8 @@ function showToast(message, type = "info") {
 
   document.body.appendChild(toast);
 
-  // Auto-dismiss after 2.5 seconds
   toastTimeout = setTimeout(() => {
-    toast.style.opacity = "0";
+    toast.style.opacity    = "0";
     toast.style.transition = "opacity 0.3s ease";
     setTimeout(() => toast.remove(), 300);
   }, 2500);
